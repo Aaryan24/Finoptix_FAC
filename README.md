@@ -61,34 +61,65 @@ two by rank beat either alone.
 
 ## Where it landed
 
-41.7% CAGR, Sharpe 1.48, −27.4% maximum drawdown — NIFTY 500 universe, January 2021 to
-January 2026, 58 monthly rebalances, net of 20bps in costs. Equal-weighting the same
-universe on the same schedule returns 21.8% at Sharpe 0.93.
+Every model below picks 30 stocks a month from the same NIFTY 500 universe, holds them
+equally weighted, and pays 20bps on turnover. January 2021 to January 2026, 58 rebalances.
 
-The number is not the useful part. Four things I did not expect going in:
+| Model | CAGR | Sharpe | Max DD | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|
+| Blend (transformer + momentum) | **41.7%** | 1.48 | −27.4% | 80.6 | 12.2 | 99.3 | 30.7 | 10.6 | −2.5 |
+| Ridge, 15 parameters | 40.3% | 1.50 | −27.6% | 62.1 | 33.3 | 76.3 | 50.3 | −0.5 | −4.9 |
+| Cross-sectional transformer | 40.1% | 1.43 | −25.8% | 64.8 | 7.9 | 120.6 | 45.3 | 1.1 | −6.8 |
+| 12-1 momentum, no model | 39.0% | 1.37 | −30.3% | 76.7 | 11.3 | 95.7 | 29.3 | 6.8 | −2.7 |
+| LSTM, sequences + factors | 38.1% | **1.60** | **−21.2%** | 78.7 | 10.7 | 68.3 | 49.9 | 5.3 | −4.8 |
+| MLP, factors only | 37.7% | **1.59** | −23.5% | 71.3 | 15.6 | 63.3 | 54.9 | 2.6 | −3.9 |
+| XGBoost | 35.4% | 1.31 | −26.4% | 57.5 | 21.8 | 73.8 | 48.5 | −2.2 | −6.5 |
+| *Equal-weight NIFTY 500 — benchmark* | *21.0%* | *0.90* | *−23.3%* | 37.6 | 3.9 | 50.0 | 21.7 | 4.1 | −4.6 |
+| LSTM, sequences only | 18.7% | 0.74 | −27.9% | 27.0 | −3.5 | 54.7 | 32.5 | 2.0 | −8.3 |
+| NIFTY 50 | 12.7% | 0.48 | −17.2% | 24.1 | 4.3 | 20.0 | 8.8 | 10.5 | −3.1 |
 
-Information coefficient and portfolio quality pull against each other. Across seven
-variants of the same model, the one with the only statistically significant IC in the
-entire project (+0.0822, t = 5.21) produced the worst portfolio of the seven, and the best
-portfolio had a negative IC. If you only ever hold thirty names, ranking the other three
-hundred correctly is wasted effort.
+Read that table honestly and the transformer is not the story. A ridge regression with
+fifteen coefficients returns 40.3% and matches the blend on Sharpe. The LSTM and the plain
+MLP have the best risk-adjusted returns in the table, and the LSTM has the shallowest
+drawdown by five points. Everything that sees the factor set lands between 35% and 42%,
+a spread narrower than any single strategy's year-to-year variation.
 
-Equal weighting beat every optimiser I tried, including the Black-Litterman and MVO stack
-the original was built on. Once the selection stage is doing its job, mean-variance has
-nothing left to add: its only estimate of expected returns is a trailing average that is
-mostly noise, and it concentrates thirty positions into about eleven chasing it.
+The one model that fails is the one denied the factors. Give the LSTM sixty days of raw
+price history and nothing else and it returns 18.7%, below the benchmark. That is the
+cleanest result here: the predictable structure lives in the cross-sectional features, not
+in the shape of the price path, and no amount of architecture recovers it.
 
-There is no statistically significant alpha. Regress the returns on market, size and
-momentum and what is left over is −0.98% a year with a t-statistic of −0.20. The strategy
-is a market beta of 1.1 with a 0.62 loading on momentum, harvested efficiently. That is a
-real thing to have built, but it is not an edge nobody else has.
+So what actually generates the return is the factor construction, the decision to hold
+thirty names, and equal weighting. The model on top is close to interchangeable. I built
+the transformer expecting it to be the differentiator; it is worth about two points of CAGR
+over ridge and loses to ridge on Sharpe.
 
-Deep sequence models contributed nothing. An LSTM given sixty days of raw price history
-scores an IC of 0.0114, which is noise; give it the cross-sectional factor ranks instead
-and it scores 0.0324. Whatever is predictable here lives in the relative features, not in
-the shape of the price path.
+## What else the data said
 
-Every figure below has been checked against the code that produced it, and anything I could
+Information coefficient is a bad guide to portfolio quality. Across seven target and loss
+variants of the same architecture, the variant with the only statistically significant IC
+in the project produced the worst portfolio of the seven, and the best portfolio came from
+a variant with a negative IC. If you hold thirty names out of three hundred, ranking the
+other two hundred and seventy correctly earns nothing.
+
+Equal weighting beat every optimiser tested, including the Black-Litterman and
+mean-variance stack the original project was built on. On blend picks, equal weighting
+returns 41.7% at Sharpe 1.48 against 33.8% and 1.15 for L2-penalised MVO. Once the
+selection stage works, mean-variance has only a trailing average to estimate returns from,
+which is mostly noise, and it concentrates thirty positions into about eleven chasing it.
+Black-Litterman was the weakest of the three schemes at Sharpe 0.69.
+
+There is no statistically significant alpha. Regressing returns on market, size and
+momentum leaves −0.98% a year with a t-statistic of −0.20. The strategy is a market beta
+of 1.1 carrying a 0.62 loading on momentum, harvested efficiently. Worth building; not an
+edge nobody else has.
+
+The edge is fading. Monthly excess return over the benchmark was +1.82% (t = 3.42) across
+2021–2023 and +0.73% (t = 1.19) across 2024–2026 — still positive, no longer significant.
+It correlates +0.55 with the momentum factor, which had its only negative year in 2025.
+That reads as factor cyclicality rather than model decay, but twenty-five months cannot
+tell the two apart.
+
+Every figure here has been checked against the code that produced it, and anything I could
 not reproduce has been removed. The [known defects](#known-defects) section is not
 decoration — there is a bug in the evaluation window that I found late and chose to
 document rather than quietly re-run.
@@ -146,71 +177,55 @@ draft reported t = 2.02 on daily ICs; the Newey-West value for that series is 0.
 
 ## 3. Results
 
-### 3.1 Single factors (385-name panel, ~255 names/day, 2016–2026, in-sample descriptive)
+### 3.1 Which factors carry signal
 
-| Factor | IC | t (NW) | Non-overlap t |
+Fifteen candidate factors were screened on the NIFTY 500 panel over 2016–2026, each tested
+for whether it ranks next month's cross-sectional returns better than chance, with
+Newey-West and non-overlapping t-statistics to account for the fact that overlapping
+21-day labels make naive daily tests look about √21 times more significant than they are.
+
+Four survived that screen: **12-1 momentum** (the strongest by some margin, and the only
+one clearing significance on all three non-overlapping offsets), **price relative to its
+200-day average**, **size** with small beating large, and **6-1 momentum**. Turnover and
+Amihud illiquidity were marginal.
+
+Short-term reversal, realised volatility, downside volatility, beta, idiosyncratic
+volatility, skewness and the MAX effect showed nothing. Several of these are documented
+anomalies in US equities, so their absence here is worth noting rather than glossing over
+— it may be a genuine market difference, or an artefact of a large-cap Indian universe
+over a single bull-market decade.
+
+12-1 momentum's sign is *a priori* from Jegadeesh & Titman (1993), not fitted on this data.
+These are full-sample descriptive statistics, not walk-forward, and are used to motivate
+the feature set rather than to support any performance claim.
+
+### 3.2 Where the signal lives
+
+Ablation on the LSTM, same folds and evaluation dates: given only 60 days of raw price
+history it returns 18.7% (below the 21.0% benchmark); given only the cross-sectional
+factor ranks it returns 37.7%. The sequence branch contributes nothing the factors do not
+already carry.
+
+### 3.3 Target and loss variants
+
+Seven variants of the transformer, same architecture and folds, differing only in what
+they predict and how they are scored:
+
+| Target + loss | CAGR | Sharpe | Max DD |
 |---|---|---|---|
-| **12-1 momentum** | **+0.0496** | **+3.00** | 2.23, 3.21, 2.31 |
-| Price / 200d MA | +0.0336 | +2.23 | 1.81, 1.87, 1.67 |
-| Size (small → high) | −0.0307 | −2.26 | −2.10, −2.33, −1.32 |
-| 6-1 momentum | +0.0293 | +2.19 | 1.25, 0.92, 2.61 |
-| Turnover | +0.0234 | +2.02 | 2.01, 1.57, 0.44 |
-| Amihud illiquidity | +0.0239 | +1.71 | 1.43, 2.14, 1.22 |
-| Reversal, vol, beta, ivol, MAX | ≈ 0 | < \|1\| | — |
+| Vol-scaled + top-weighted | 41.5% | 1.74 | −28.4% |
+| Top-decile classification | 40.5% | 1.39 | −32.5% |
+| Demean + top-weighted (headline) | 39.5% | 1.37 | −28.6% |
+| Clipped + top-weighted | 39.4% | 1.39 | −29.2% |
+| Rank + top-weighted | 39.3% | 1.39 | −31.0% |
+| Soft top-k portfolio | 34.9% | 1.27 | −32.2% |
+| Rank + plain correlation | 34.2% | 1.34 | −31.6% |
 
-12-1 momentum is the only factor clearing t > 2 on all three non-overlapping offsets.
-Its sign is *a priori* (Jegadeesh & Titman 1993), not fitted here. **These are full-sample
-descriptive statistics, not walk-forward.**
-
-### 3.2 Model comparison
-
-**These models were not all evaluated on the same cross-section**, and the comparison is
-weaker than it first appears. Universe is stated per row.
-
-| Model | Universe | Names/date | IC | t |
-|---|---|---|---|---|
-| LSTM (sequences + factors) | NIFTY500, ₹5cr | 329 | +0.0347 | +2.10 |
-| MLP (factors only) | NIFTY500, ₹5cr | 329 | +0.0324 | +1.99 |
-| Momentum | NIFTY500, ₹5cr | 329 | +0.0365 | +2.30 |
-| Momentum | all-NSE, ₹3cr | 527 | **+0.0288** | +1.88 |
-| Transformer | all-NSE, ₹3cr | 527 | +0.0039 | +0.22 |
-| LSTM (sequences only) | NIFTY500, ₹5cr | 329 | +0.0114 | +0.78 |
-| Ridge (walk-forward, daily) | 385-panel | ~255 | +0.0253 | +1.38 |
-| XGBoost (walk-forward, daily) | 385-panel | ~255 | **−0.0046** | −0.30 |
-
-**On a common universe momentum scores +0.0288 and ranks *behind* the LSTM and MLP.**
-An earlier draft claimed performance was "monotonically inverse to model complexity";
-that claim was an artefact of comparing momentum on the narrower universe against the
-transformer on the wider one, and it is withdrawn.
-
-**Ablation (this does hold).** Sequence-only IC is +0.0114 (t = 0.78) against
-factors-only +0.0324 — the LSTM's signal comes from its factor inputs, not from 60 days
-of price history.
-
-### 3.3 IC is the wrong metric for a concentrated portfolio
-
-The clearest result in the project. Across seven target/loss variants of the same
-architecture, IC and portfolio quality are **inversely** related.
-
-| Target + loss | IC | t(IC) | Top-30/mo | CAGR | Sharpe |
-|---|---|---|---|---|---|
-| Vol-scaled + top-weighted | +0.0059 | +0.38 | +1.332% | **41.5%** | **1.74** |
-| Top-decile classification | −0.0208 | −1.05 | **+1.990%** | 40.5% | 1.39 |
-| Demean + top-weighted *(headline model)* | −0.0129 | −0.64 | +1.671% | 39.5% | 1.37 |
-| Clipped + top-weighted | −0.0102 | −0.54 | +1.861% | 39.4% | 1.39 |
-| Rank + top-weighted | +0.0066 | +0.40 | +1.746% | 39.3% | 1.39 |
-| Soft top-k portfolio | +0.0286 | +2.24 | +1.659% | 34.9% | 1.27 |
-| **Rank + plain correlation** | **+0.0822** | **+5.21** | +0.664% | 34.2% | 1.34 |
-
-The bottom row has the only statistically significant IC in the entire project
-(t = 5.21) and the worst portfolio by a factor of three. The best portfolio has a
-*negative* IC. Optimising whole-cross-section rank correlation spends model capacity on
-the ~220 names that never enter the portfolio.
-
-**Note on selection:** the headline configuration is *not* the best in this table —
-vol-scaled reaches Sharpe 1.74. The differences are within selection noise across seven
-variants on 58 months (baseline alone moves ±0.07%/mo on seed count), so no winner is
-claimed. The full table is published rather than the best row.
+Weighting the loss toward the top of the distribution is worth roughly five points of CAGR
+over plain cross-sectional correlation — the bottom row is the only variant that optimises
+the full ranking, and it is the worst. Differences among the top five are within selection
+noise across seven variants on 58 months, so no winner is claimed; the headline
+configuration is not the best row in this table.
 
 ### 3.4 Portfolio construction
 
