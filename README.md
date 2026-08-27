@@ -280,14 +280,22 @@ Positive in four of five years, negative in the most recent complete one.
 
 ### 3.6 Factor attribution
 
+Ridge + transformer, corrected engine, daily returns regressed on factors built from the
+same universe:
+
 | Regression | Alpha | t | MKT | SMB | WML |
 |---|---|---|---|---|---|
-| ~ MKT + SMB | −0.98%/yr | −0.20 | 1.28 | 0.29 | — |
-| ~ MKT + SMB + WML | −7.11%/yr | −1.81 | 1.10 | 0.29 | **0.62** |
+| ~ MKT + SMB | +4.95%/yr | +1.20 | 1.32 | 0.42 | — |
+| ~ MKT + SMB + WML | −0.11%/yr | −0.03 | 1.17 | 0.42 | **0.51** |
 
-**No statistically significant alpha.** Returns decompose into market beta ≈ 1.1–1.3, a
-small-cap tilt, and a 0.62 momentum loading. This is factor harvesting, not unexplained
-return.
+Against market and size alone, alpha is +4.95% a year — but t = 1.20, so it is not
+statistically significant and would need roughly three times the sample to establish. Add
+the momentum factor and alpha is exactly zero (−0.11%, t = −0.03). Whatever the strategy
+earns beyond market and size is momentum exposure.
+
+The ensemble carries less of it than the simpler blend — WML loading 0.51 against 0.65 —
+which follows from dropping momentum as an explicit signal, but not enough to generate
+unexplained return. This is efficient factor harvesting, not alpha.
 
 ### 3.7 Placebo test
 
@@ -301,15 +309,20 @@ cost-charged version; that figure overstates the result.
 
 ## Known defects
 
-**1. The evaluation window has a four-month hole.** The `amihud` feature goes NaN across
+**1. The evaluation window has a four-month hole, and the headline is probably flattered by it.** The `amihud` feature goes NaN across
 the entire cross-section when a market-wide stale-volume bar falls inside its 63-day
 window, and `xattn.py` drops any snapshot with a non-finite feature. This silently
 removed **9 of 67 evaluation months**. The portfolio held **unrebalanced from
 2025-03-03 to 2025-07-01 — 120 days** — and evaluation ends Jan 2026 rather than Jul 2026,
 discarding six months of available data. Fix: `min_periods` on the rolling window, or drop
 non-finite features per-name rather than per-snapshot. **All results above are computed on
-the 58 dates that survived**, so they are internally consistent but do not cover the
-period a reader would assume.
+the 58 dates that survived**, so they are internally consistent but do not cover the period
+a reader would assume. The missing months fall disproportionately in 2025, the weakest
+stretch in the sample — 2025 excess return over the benchmark was −5 points — so the
+headline CAGR is more likely overstated than understated. The fix is two lines
+(`min_periods` on the rolling windows, and replacing zero traded value with NaN before
+dividing); it was verified to eliminate every in-window NaN date but the corrected re-run
+is not reflected in the figures above.
 
 **2. Survivorship bias interacts with the selection rule.** Universes are built from
 *current* index membership and a full-sample data-availability filter, applied
