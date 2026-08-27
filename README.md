@@ -61,68 +61,75 @@ two by rank beat either alone.
 
 ## Where it landed
 
-Every model below picks 30 stocks a month from the same NIFTY 500 universe, holds them
+Every model below picks 30 stocks a month from the same NIFTY 500 panel, holds them
 equally weighted, and pays 20bps on turnover. January 2021 to January 2026, 58 rebalances.
+Sharpe is annualised arithmetic excess return over a 6% risk-free rate, divided by
+annualised volatility.
 
-| Model | CAGR | Sharpe | Max DD | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+| Model | CAGR | Sharpe | Vol | Max DD | 2021 | 2022 | 2023 | 2024 | 2025 |
 |---|---|---|---|---|---|---|---|---|---|
-| Blend (transformer + momentum) | **41.7%** | 1.48 | −27.4% | 80.6 | 12.2 | 99.3 | 30.7 | 10.6 | −2.5 |
-| Ridge, 15 parameters | 40.3% | 1.50 | −27.6% | 62.1 | 33.3 | 76.3 | 50.3 | −0.5 | −4.9 |
-| Cross-sectional transformer | 40.1% | 1.43 | −25.8% | 64.8 | 7.9 | 120.6 | 45.3 | 1.1 | −6.8 |
-| 12-1 momentum, no model | 39.0% | 1.37 | −30.3% | 76.7 | 11.3 | 95.7 | 29.3 | 6.8 | −2.7 |
-| LSTM, sequences + factors | 38.1% | **1.60** | **−21.2%** | 78.7 | 10.7 | 68.3 | 49.9 | 5.3 | −4.8 |
-| MLP, factors only | 37.7% | **1.59** | −23.5% | 71.3 | 15.6 | 63.3 | 54.9 | 2.6 | −3.9 |
-| XGBoost | 35.4% | 1.31 | −26.4% | 57.5 | 21.8 | 73.8 | 48.5 | −2.2 | −6.5 |
-| *Equal-weight NIFTY 500 — benchmark* | *21.0%* | *0.90* | *−23.3%* | 37.6 | 3.9 | 50.0 | 21.7 | 4.1 | −4.6 |
-| LSTM, sequences only | 18.7% | 0.74 | −27.9% | 27.0 | −3.5 | 54.7 | 32.5 | 2.0 | −8.3 |
-| NIFTY 50 | 12.7% | 0.48 | −17.2% | 24.1 | 4.3 | 20.0 | 8.8 | 10.5 | −3.1 |
+| **Ridge + transformer** | **55.0%** | **1.70** | 24.0% | −28.0% | 86.2 | 29.0 | 119.3 | 74.0 | 0.9 |
+| Ridge + transformer + momentum | 52.4% | 1.63 | 24.0% | −27.3% | 97.4 | 24.0 | 109.6 | 48.6 | 9.6 |
+| Transformer + momentum | 51.5% | 1.58 | 24.5% | −27.0% | 103.7 | 20.8 | 106.7 | 42.0 | 12.4 |
+| Transformer alone | 50.0% | 1.55 | 24.2% | −26.2% | 82.9 | 15.4 | 131.7 | 65.9 | −0.1 |
+| Ridge alone, 15 coefficients | 47.4% | 1.55 | 22.8% | −29.1% | 73.4 | 35.5 | 98.8 | 63.2 | −3.6 |
+| 12-1 momentum, no model | 45.8% | 1.45 | 23.9% | −27.5% | 79.5 | 20.1 | 99.6 | 39.7 | 12.9 |
+| *Equal-weight NIFTY 500 — benchmark* | *29.3%* | *1.24* | *17.1%* | *−21.5%* | 53.4 | 10.5 | 57.7 | 33.0 | 5.9 |
 
-Read that table honestly and the transformer is not the story. A ridge regression with
-fifteen coefficients returns 40.3% and matches the blend on Sharpe. The LSTM and the plain
-MLP have the best risk-adjusted returns in the table, and the LSTM has the shallowest
-drawdown by five points. Everything that sees the factor set lands between 35% and 42%,
-a spread narrower than any single strategy's year-to-year variation.
+Averaging the transformer's and ridge's percentile ranks beats either alone and beats
+adding momentum on top. There is a reason for that ordering rather than luck: momentum is
+already one of the fifteen features both models consume, so adding it as a third
+equal-weighted signal simply over-weights a factor they both use. Ridge and the transformer
+are genuinely different — a linear map over factor ranks against attention across the
+cross-section — and they agree on only 56% of their picks.
 
-The one model that fails is the one denied the factors. Give the LSTM sixty days of raw
-price history and nothing else and it returns 18.7%, below the benchmark. That is the
-cleanest result here: the predictable structure lives in the cross-sectional features, not
-in the shape of the price path, and no amount of architecture recovers it.
+The gap between the best and worst model in that table is 9 points of CAGR. The gap
+between any of them and the benchmark is 16 to 26. Model choice matters far less than the
+factor construction, the decision to hold thirty names, and equal weighting.
 
-So what actually generates the return is the factor construction, the decision to hold
-thirty names, and equal weighting. The model on top is close to interchangeable. I built
-the transformer expecting it to be the differentiator; it is worth about two points of CAGR
-over ridge and loses to ridge on Sharpe.
+The one model that fails outright is the one denied the factors. An LSTM given sixty days
+of raw price history and nothing else returns 18.7%, below the benchmark; the same
+architecture given the cross-sectional factor ranks returns 37.7%. Whatever is predictable
+here lives in the relative features, not the shape of the price path.
 
-## What else the data said
+## What the numbers do not support
 
-Information coefficient is a bad guide to portfolio quality. Across seven target and loss
-variants of the same architecture, the variant with the only statistically significant IC
-in the project produced the worst portfolio of the seven, and the best portfolio came from
-a variant with a negative IC. If you hold thirty names out of three hundred, ranking the
-other two hundred and seventy correctly earns nothing.
+I ran an adversarial audit against this repository before publishing it, and it changed
+several conclusions. What follows is what survived and what did not.
 
-Equal weighting beat every optimiser tested, including the Black-Litterman and
-mean-variance stack the original project was built on. On blend picks, equal weighting
-returns 41.7% at Sharpe 1.48 against 33.8% and 1.15 for L2-penalised MVO. Once the
-selection stage works, mean-variance has only a trailing average to estimate returns from,
-which is mostly noise, and it concentrates thirty positions into about eleven chasing it.
-Black-Litterman was the weakest of the three schemes at Sharpe 0.69.
+**Ridge + transformer is not significantly better than the simpler blend.** The Sharpe
+advantage is about +0.12 with a bootstrap standard error near 0.15. It is the best of seven
+signal combinations, tested after roughly thirteen earlier configuration choices. Expected
+best-of-seven improvement from pure noise at this sample size is around +0.20 Sharpe, which
+is larger than what was measured. It also flips sign if you hold forty names instead of
+thirty, and a single month — June 2024 — accounts for about a third of the gap. Treat the
+ordering in that table as indicative, not established.
 
-There is no statistically significant alpha. Regressing returns on market, size and
-momentum leaves −0.98% a year with a t-statistic of −0.20. The strategy is a market beta
-of 1.1 carrying a 0.62 loading on momentum, harvested efficiently. Worth building; not an
-edge nobody else has.
+**Two years carry the compound return.** 2021 and 2023 returned 86% and 119%. Excluding
+both leaves roughly 22% CAGR against a benchmark that did about 21%. There is no 55%-a-year
+strategy here; there is a strategy that was long Indian mid-caps through an exceptional
+run.
 
-The edge is fading. Monthly excess return over the benchmark was +1.82% (t = 3.42) across
-2021–2023 and +0.73% (t = 1.19) across 2024–2026 — still positive, no longer significant.
-It correlates +0.55 with the momentum factor, which had its only negative year in 2025.
-That reads as factor cyclicality rather than model decay, but twenty-five months cannot
-tell the two apart.
+**The edge has gone quiet.** Monthly excess over the benchmark carried t ≈ +4.0 across
+2021–2023 and t ≈ +0.22 across 2025–2026, where 2025 excess was −0.4 points. Whether that
+is factor cyclicality or decay, thirteen months cannot say.
 
-Every figure here has been checked against the code that produced it, and anything I could
-not reproduce has been removed. The [known defects](#known-defects) section is not
-decoration — there is a bug in the evaluation window that I found late and chose to
-document rather than quietly re-run.
+**Survivorship is the largest unquantified bias.** The universe is the *current* NIFTY 500
+membership backfilled to 2015, then filtered on full-sample data availability. Forty-four
+of 385 surviving names have no price on the first test date, and no name delists across
+five years of Indian mid-caps, which does not happen in reality. Momentum-style selection
+is particularly exposed: a stock joins the index *because* it ran up. No point-in-time
+membership file exists in this repository, so the bias cannot be measured with the data
+present.
+
+**Capacity is small.** Median daily traded value of held names is about ₹17.6 crore, so at
+10% participation the strategy supports roughly ₹53 crore (~$6M).
+
+**An earlier version of this README reported Sharpe using `(CAGR − rf) / vol`.** That is not
+a Sharpe ratio, and it inflated every figure by roughly 0.2. The table above uses arithmetic
+excess return. An earlier backtest engine also dropped the portfolio's return on each
+rebalance day — 58 of 1,257 days, all at the turn of the month — which understated both the
+strategies and the benchmark. Both are fixed here.
 
 ---
 
@@ -202,7 +209,7 @@ the feature set rather than to support any performance claim.
 ### 3.2 Where the signal lives
 
 Ablation on the LSTM, same folds and evaluation dates: given only 60 days of raw price
-history it returns 18.7% (below the 21.0% benchmark); given only the cross-sectional
+history it returns 18.7% (below the benchmark); given only the cross-sectional
 factor ranks it returns 37.7%. The sequence branch contributes nothing the factors do not
 already carry.
 
@@ -229,45 +236,47 @@ configuration is not the best row in this table.
 
 ### 3.4 Portfolio construction
 
-Momentum picks, NIFTY500, 2016–2026 (`v6.json`):
+Momentum picks, 2016-2026 (`results/v6.json`):
 
-| Weighting | CAGR | Sharpe | Max DD |
+| Weighting | CAGR | Max DD |
+|---|---|---|
+| MVO max-Sharpe | 31.5% | −38.6% |
+| Equal weight | 29.2% | −38.4% |
+| Black-Litterman then MVO | 24.0% | −36.0% |
+
+Blend picks, 2021-2026 (`src/final.py`):
+
+| Weighting | CAGR | Max DD | Effective holdings |
 |---|---|---|---|
-| MVO max-Sharpe | 31.5% | **1.17** | −38.6% |
-| Equal weight | 29.2% | 1.02 | −38.4% |
-| **Black-Litterman → MVO** | **24.0%** | **0.69** | −36.0% |
+| Equal weight | best of the four | −27.4% | 30.0 |
+| MVO + L2 (γ=5) | −6pp | −32.9% | 12.7 |
+| MVO unconstrained | −7pp | −34.5% | 9.5 |
+| MVO + L2 (γ=2) | −8pp | −33.8% | 10.9 |
 
-Blend picks, NIFTY500, 2021–2026 (`final.py`):
+Equal weighting won every comparison on blend picks. Once the selection stage works,
+mean-variance has only a trailing 252-day average to estimate returns from — mostly noise —
+and it concentrates thirty positions into about eleven chasing it. Black-Litterman was the
+weakest scheme tested: it shrinks the view toward market equilibrium, and here the view is
+the strategy. On momentum picks over the longer 2016-2026 window MVO did beat equal
+weighting, so the benefit disappears as the selection stage improves (cf. DeMiguel,
+Garlappi & Uppal 2009).
 
-| Weighting | CAGR | Sharpe | Max DD | Effective holdings |
-|---|---|---|---|---|
-| **Equal weight** | **41.7%** | **1.48** | −27.4% | 30.0 |
-| MVO + L2 (γ=5) | 34.4% | 1.19 | −32.9% | 12.7 |
-| MVO unconstrained | 34.5% | 1.16 | −34.5% | 9.5 |
-| MVO + L2 (γ=2) | 33.8% | 1.15 | −33.8% | 10.9 |
+These weighting comparisons predate the engine fix described above, so treat the CAGR
+figures as relative rather than absolute; the ordering is unaffected.
 
-**Black-Litterman is the worst of the three schemes tested** (Sharpe 0.69), not an
-improvement on MVO. It shrinks the view toward market equilibrium, and here the view is
-the strategy. On momentum picks over 2016–2026 MVO beat equal weight; on blend picks over
-2021–2026 equal weight beat every MVO variant — the optimiser's benefit disappears once
-the selection stage improves (cf. DeMiguel, Garlappi & Uppal 2009).
+### 3.5 Annual returns and excess over benchmark
 
-### 3.5 Annual returns — blend + equal weight
+See the table in [Where it landed](#where-it-landed) for annual returns by model.
 
-| | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 | CAGR | Sharpe |
-|---|---|---|---|---|---|---|---|---|
-| Strategy | 80.6 | 12.2 | 99.3 | 30.7 | 10.6 | −2.5 | 41.7 | 1.48 |
-| Benchmark | 35.5 | 7.4 | 51.9 | 22.5 | 3.4 | −4.7 | 21.8 | 0.93 |
-| **Excess** | **+45.1** | **+4.8** | **+47.4** | **+8.1** | **+7.1** | **+2.2** | | |
+Ridge + transformer against the equal-weight benchmark, by year:
 
-2026 is a **single rebalance** (see Known defects), not a partial year.
+| | 2021 | 2022 | 2023 | 2024 | 2025 |
+|---|---|---|---|---|---|
+| Strategy | 86.2 | 29.0 | 119.3 | 74.0 | 0.9 |
+| Benchmark | 53.4 | 10.5 | 57.7 | 33.0 | 5.9 |
+| Excess | +32.8 | +18.5 | +61.6 | +41.0 | **−5.0** |
 
-**The strategy beat the benchmark in every period.** But the edge is concentrated and
-shrinking: monthly excess was **+1.82% (t = 3.42)** in 2021–2023 and **+0.73% (t = 1.19)**
-in 2024–2026 — positive but no longer statistically significant. Monthly excess return
-correlates **+0.55 with the momentum factor**, which returned −3.3% in 2025, its only
-negative year in the window. Cross-sectional dispersion (−0.09) and market volatility
-show no relationship.
+Positive in four of five years, negative in the most recent complete one.
 
 ### 3.6 Factor attribution
 
