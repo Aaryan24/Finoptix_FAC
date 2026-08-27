@@ -62,30 +62,34 @@ two by rank beat either alone.
 ## Where it landed
 
 Every model below picks 30 stocks a month from the same NIFTY 500 panel, holds them
-equally weighted, and pays 20bps on turnover. January 2021 to January 2026, 58 rebalances.
-Sharpe is annualised arithmetic excess return over a 6% risk-free rate, divided by
-annualised volatility.
+equally weighted, and pays 20bps on turnover. January 2021 to July 2026, 67 rebalances.
+Sharpe is annualised arithmetic excess over a 6% risk-free rate divided by annualised
+volatility.
 
-| Model | CAGR | Sharpe | Vol | Max DD | 2021 | 2022 | 2023 | 2024 | 2025 |
-|---|---|---|---|---|---|---|---|---|---|
-| **Ridge + transformer** | **55.0%** | **1.70** | 24.0% | −28.0% | 86.2 | 29.0 | 119.3 | 74.0 | 0.9 |
-| Ridge + transformer + momentum | 52.4% | 1.63 | 24.0% | −27.3% | 97.4 | 24.0 | 109.6 | 48.6 | 9.6 |
-| Transformer + momentum | 51.5% | 1.58 | 24.5% | −27.0% | 103.7 | 20.8 | 106.7 | 42.0 | 12.4 |
-| Transformer alone | 50.0% | 1.55 | 24.2% | −26.2% | 82.9 | 15.4 | 131.7 | 65.9 | −0.1 |
-| Ridge alone, 15 coefficients | 47.4% | 1.55 | 22.8% | −29.1% | 73.4 | 35.5 | 98.8 | 63.2 | −3.6 |
-| 12-1 momentum, no model | 45.8% | 1.45 | 23.9% | −27.5% | 79.5 | 20.1 | 99.6 | 39.7 | 12.9 |
-| *Equal-weight NIFTY 500 — benchmark* | *29.3%* | *1.24* | *17.1%* | *−21.5%* | 53.4 | 10.5 | 57.7 | 33.0 | 5.9 |
+| Model | CAGR | Sharpe | Vol | Max DD | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Cross-sectional transformer** | **52.2%** | **1.63** | 23.9% | −28.2% | 108.4 | 15.2 | 106.6 | 76.6 | 4.0 | 9.7 |
+| Transformer + momentum | 49.0% | 1.53 | 24.0% | −28.4% | 112.4 | 23.4 | 102.0 | 47.5 | 6.7 | 7.1 |
+| Ridge + transformer | 46.2% | 1.47 | 23.7% | −28.7% | 84.9 | 23.4 | 107.1 | 61.4 | −4.6 | 10.2 |
+| 12-1 momentum, no model | 46.9% | 1.46 | 24.4% | −30.6% | 103.5 | 17.7 | 106.9 | 45.1 | 6.0 | 8.2 |
+| Ridge alone, 15 coefficients | 43.4% | 1.42 | 23.0% | −29.1% | 74.1 | 35.8 | 94.3 | 66.3 | −10.6 | 5.5 |
+| *Equal-weight NIFTY 500 — benchmark* | *28.4%* | *1.18* | *17.4%* | *−21.5%* | 53.4 | 10.5 | 57.7 | 33.0 | 5.9 | 4.6 |
 
-Averaging the transformer's and ridge's percentile ranks beats either alone and beats
-adding momentum on top. There is a reason for that ordering rather than luck: momentum is
-already one of the fifteen features both models consume, so adding it as a third
-equal-weighted signal simply over-weights a factor they both use. Ridge and the transformer
-are genuinely different — a linear map over factor ranks against attention across the
-cross-section — and they agree on only 56% of their picks.
+2026 covers January to July.
 
-The gap between the best and worst model in that table is 9 points of CAGR. The gap
-between any of them and the benchmark is 16 to 26. Model choice matters far less than the
-factor construction, the decision to hold thirty names, and equal weighting.
+Treat the ordering inside that table as unreliable. It flipped twice under data
+corrections that had nothing to do with the models. An earlier version of this repository
+reported ridge + transformer at the top with 55.0% and Sharpe 1.70; repairing a NaN cascade
+that had silently dropped nine evaluation months moved it to fourth. The dropped months
+fell mostly in 2025, which is exactly where ridge does its worst work — it returns −10.6%
+that year against a benchmark that made +5.9% — so removing them had been flattering every
+combination containing it.
+
+What is stable across every version is the gap to the benchmark. All five models beat
+equal-weighting the same universe by 15 to 24 points of CAGR. The spread among the models
+is smaller than the spread produced by a single bug fix, which is the honest way to read
+them: the factor construction, the thirty-name concentration and equal weighting generate
+the return, and the model on top is close to interchangeable.
 
 The one model that fails outright is the one denied the factors. An LSTM given sixty days
 of raw price history and nothing else returns 18.7%, below the benchmark; the same
@@ -264,38 +268,35 @@ Garlappi & Uppal 2009).
 These weighting comparisons predate the engine fix described above, so treat the CAGR
 figures as relative rather than absolute; the ordering is unaffected.
 
-### 3.5 Annual returns and excess over benchmark
+### 3.5 Annual excess over the benchmark
 
-See the table in [Where it landed](#where-it-landed) for annual returns by model.
+Cross-sectional transformer against equal-weighting the same universe:
 
-Ridge + transformer against the equal-weight benchmark, by year:
+| | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 |
+|---|---|---|---|---|---|---|
+| Strategy | 108.4 | 15.2 | 106.6 | 76.6 | 4.0 | 9.7 |
+| Benchmark | 53.4 | 10.5 | 57.7 | 33.0 | 5.9 | 4.6 |
+| **Excess** | **+55.0** | **+4.7** | **+48.9** | **+43.6** | **−1.9** | **+5.2** |
 
-| | 2021 | 2022 | 2023 | 2024 | 2025 |
-|---|---|---|---|---|---|
-| Strategy | 86.2 | 29.0 | 119.3 | 74.0 | 0.9 |
-| Benchmark | 53.4 | 10.5 | 57.7 | 33.0 | 5.9 |
-| Excess | +32.8 | +18.5 | +61.6 | +41.0 | **−5.0** |
-
-Positive in four of five years, negative in the most recent complete one.
+Positive in five of six periods; 2025 is the exception. Monthly excess averaged +1.54%
+(t = 3.88) across the whole window — +1.82% (t = 3.95) over 2021–2023 and +1.13%
+(t = 1.60) over 2024–2026. The edge is smaller recently and no longer individually
+significant, but it has not disappeared. 2026 covers January to July.
 
 ### 3.6 Factor attribution
 
-Ridge + transformer, corrected engine, daily returns regressed on factors built from the
-same universe:
+Cross-sectional transformer, 67-month window, daily returns on factors built from the same
+universe:
 
 | Regression | Alpha | t | MKT | SMB | WML |
 |---|---|---|---|---|---|
-| ~ MKT + SMB | +4.95%/yr | +1.20 | 1.32 | 0.42 | — |
-| ~ MKT + SMB + WML | −0.11%/yr | −0.03 | 1.17 | 0.42 | **0.51** |
+| ~ MKT + SMB | +6.18%/yr | +1.56 | 1.29 | 0.33 | — |
+| ~ MKT + SMB + WML | +2.67%/yr | +0.74 | 1.19 | 0.33 | **0.36** |
 
-Against market and size alone, alpha is +4.95% a year — but t = 1.20, so it is not
-statistically significant and would need roughly three times the sample to establish. Add
-the momentum factor and alpha is exactly zero (−0.11%, t = −0.03). Whatever the strategy
-earns beyond market and size is momentum exposure.
-
-The ensemble carries less of it than the simpler blend — WML loading 0.51 against 0.65 —
-which follows from dropping momentum as an explicit signal, but not enough to generate
-unexplained return. This is efficient factor harvesting, not alpha.
+Alpha against market and size is +6.18% a year, but t = 1.56 falls short of significance.
+Adding the momentum factor takes it to +2.67% (t = 0.74) with a WML loading of 0.36. So
+most of the excess over market and size is momentum exposure, and what remains cannot be
+distinguished from zero at this sample size. Efficient factor harvesting, not alpha.
 
 ### 3.7 Placebo test
 
@@ -309,20 +310,15 @@ cost-charged version; that figure overstates the result.
 
 ## Known defects
 
-**1. The evaluation window has a four-month hole, and the headline is probably flattered by it.** The `amihud` feature goes NaN across
-the entire cross-section when a market-wide stale-volume bar falls inside its 63-day
-window, and `xattn.py` drops any snapshot with a non-finite feature. This silently
-removed **9 of 67 evaluation months**. The portfolio held **unrebalanced from
-2025-03-03 to 2025-07-01 — 120 days** — and evaluation ends Jan 2026 rather than Jul 2026,
-discarding six months of available data. Fix: `min_periods` on the rolling window, or drop
-non-finite features per-name rather than per-snapshot. **All results above are computed on
-the 58 dates that survived**, so they are internally consistent but do not cover the period
-a reader would assume. The missing months fall disproportionately in 2025, the weakest
-stretch in the sample — 2025 excess return over the benchmark was −5 points — so the
-headline CAGR is more likely overstated than understated. The fix is two lines
-(`min_periods` on the rolling windows, and replacing zero traded value with NaN before
-dividing); it was verified to eliminate every in-window NaN date but the corrected re-run
-is not reflected in the figures above.
+**1. The NaN cascade is fixed; the ranking it distorted is a warning.** `amihud` divides by
+traded value, and zero-volume bars produced infinities that poisoned a 63-day rolling
+window market-wide. Because the feature matrix required all eighteen features finite,
+whole snapshots were dropped — nine of 67 evaluation months, including a 120-day stretch
+in 2025 where the portfolio sat unrebalanced. The fix is two lines (`min_periods` on the
+rolling windows, zero traded value replaced with NaN before dividing) and is applied in
+`src/xattn2.py` and `src/v3fix2.py`. All figures above are recomputed on the repaired
+67-month window. The episode is left documented because it changed which model appeared
+best, and that is worth knowing about a table of near-identical results.
 
 **2. Survivorship bias interacts with the selection rule.** Universes are built from
 *current* index membership and a full-sample data-availability filter, applied
