@@ -1,0 +1,4 @@
+# large regenerable price panels (rebuild with src/dl_big.py)
+raw*.pkl
+*.log
+__pycache__/
